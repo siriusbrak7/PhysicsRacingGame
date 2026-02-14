@@ -23,213 +23,14 @@ type Phase = 'countdown' | 'racing' | 'question' | 'finished'
 type ShiftQuality = 'perfect' | 'good' | 'early' | 'late' | 'none'
 type Lane = -1 | 0 | 1 // -1: Left, 0: Center, 1: Right
 
-/* ====== ROAD SCENE COMPONENT ====== */
-function RoadScene({ speed, playerPos, boostActive }: { speed: number; playerPos: number; boostActive: boolean }) {
-  const speedFactor = Math.min(speed / 500, 1)
-  const dashOffset = (playerPos * 8) % 200
+import Scene3D from '@/components/game/scene-3d'
 
-  // Dynamic FOV: perspective gets stronger at speed
-  const perspective = 600 - (speedFactor * 150)
-  const scale = 1 + (speedFactor * 0.05) + (boostActive ? 0.02 : 0)
-
-  // Generate road markings array
-  const dashes = useMemo(() => Array.from({ length: 20 }, (_, i) => i), [])
-  const sideDots = useMemo(() => Array.from({ length: 12 }, (_, i) => i), [])
-
+/* ====== SCENE CONTAINER ====== */
+// Replaces RoadScene with the 3D Engine
+function GameScene({ speed, phase, question, onGatePass }: { speed: number; phase: 'countdown' | 'racing' | 'question' | 'finished'; question: PhysicsQuestion | null; onGatePass: (isCorrect: boolean) => void }) {
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[#050510]" style={{ perspective: `${perspective}px` }}>
-      <div
-        className="absolute inset-0 transition-transform duration-300 ease-out"
-        style={{ transform: `scale(${scale})` }}
-      >
-        {/* Sky gradient */}
-        <div
-          className="absolute inset-x-0 top-0 h-[45%]"
-          style={{
-            background: 'linear-gradient(180deg, #050510 0%, #0a0a2a 40%, #0f1535 70%, #1a1040 100%)',
-          }}
-        />
-
-        {/* Distant city glow */}
-        <div
-          className="absolute left-0 right-0 h-12"
-          style={{
-            top: '38%',
-            background: 'linear-gradient(180deg, transparent 0%, hsl(187 60% 15% / 0.15) 50%, transparent 100%)',
-          }}
-        />
-
-        {/* Horizon glow */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 w-96 h-8 rounded-full"
-          style={{
-            top: '42%',
-            background: 'radial-gradient(ellipse, hsl(187 80% 40% / 0.12) 0%, transparent 70%)',
-          }}
-        />
-
-        {/* Road surface */}
-        <div
-          className="absolute inset-x-0 bottom-0"
-          style={{
-            top: '44%',
-            transformOrigin: 'bottom center',
-            transform: 'rotateX(45deg)',
-            transformStyle: 'preserve-3d',
-            background: 'linear-gradient(180deg, #1a1a20 0%, #222228 30%, #2a2a32 60%, #333340 100%)',
-          }}
-        >
-          {/* Center dashed line */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-1 inset-y-0">
-            {dashes.map((i) => {
-              const y = ((i * 10 + dashOffset * 0.5) % 200)
-              return (
-                <div
-                  key={`center-${i}`}
-                  className="absolute w-1"
-                  style={{
-                    left: 0,
-                    top: `${y}%`,
-                    height: '3%',
-                    background: 'hsl(45 80% 60% / 0.6)',
-                    boxShadow: '0 0 4px hsl(45 80% 60% / 0.3)',
-                  }}
-                />
-              )
-            })}
-          </div>
-
-          {/* Left lane line */}
-          <div className="absolute w-0.5 inset-y-0" style={{ left: '25%' }}>
-            {dashes.map((i) => {
-              const y = ((i * 10 + dashOffset * 0.5) % 200)
-              return (
-                <div
-                  key={`left-${i}`}
-                  className="absolute w-0.5"
-                  style={{
-                    top: `${y}%`,
-                    height: '4%',
-                    background: 'hsl(0 0% 90% / 0.4)',
-                  }}
-                />
-              )
-            })}
-          </div>
-
-          {/* Right lane line */}
-          <div className="absolute w-0.5 inset-y-0" style={{ right: '25%' }}>
-            {dashes.map((i) => {
-              const y = ((i * 10 + dashOffset * 0.5) % 200)
-              return (
-                <div
-                  key={`right-${i}`}
-                  className="absolute w-0.5"
-                  style={{
-                    top: `${y}%`,
-                    height: '4%',
-                    background: 'hsl(0 0% 90% / 0.4)',
-                  }}
-                />
-              )
-            })}
-          </div>
-
-          {/* Left edge solid line */}
-          <div className="absolute left-[5%] w-1 inset-y-0" style={{ background: 'hsl(0 0% 80% / 0.3)' }} />
-
-          {/* Right edge solid line */}
-          <div className="absolute right-[5%] w-1 inset-y-0" style={{ background: 'hsl(0 0% 80% / 0.3)' }} />
-        </div>
-
-        {/* Side barriers / guardrails - Left */}
-        <div className="absolute left-0 bottom-0 w-16" style={{ top: '44%' }}>
-          {sideDots.map((i) => {
-            const y = ((i * 16 + dashOffset * 0.3) % 200)
-            return (
-              <div
-                key={`barrier-l-${i}`}
-                className="absolute w-3 h-3 rounded-full"
-                style={{
-                  top: `${y}%`,
-                  right: 0,
-                  background: `hsl(187 100% 50% / ${0.15 + (y / 200) * 0.3})`,
-                  boxShadow: `0 0 6px hsl(187 100% 50% / ${0.1 + (y / 200) * 0.2})`,
-                }}
-              />
-            )
-          })}
-        </div>
-
-        {/* Side barriers - Right */}
-        <div className="absolute right-0 bottom-0 w-16" style={{ top: '44%' }}>
-          {sideDots.map((i) => {
-            const y = ((i * 16 + dashOffset * 0.3) % 200)
-            return (
-              <div
-                key={`barrier-r-${i}`}
-                className="absolute w-3 h-3 rounded-full"
-                style={{
-                  top: `${y}%`,
-                  left: 0,
-                  background: `hsl(345 100% 60% / ${0.15 + (y / 200) * 0.3})`,
-                  boxShadow: `0 0 6px hsl(345 100% 60% / ${0.1 + (y / 200) * 0.2})`,
-                }}
-              />
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Speed lines - appear at higher speeds inside the non-scaled container for fixed reference */}
-      {speedFactor > 0.4 && (
-        <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: Math.floor(speedFactor * 12) }, (_, i) => (
-            <div
-              key={`streak-l-${i}`}
-              className="absolute h-[2px]"
-              style={{
-                left: `${2 + i * 4}%`,
-                top: `${40 + i * 6}%`,
-                width: `${100 + speedFactor * 200}px`,
-                background: `linear-gradient(90deg, transparent, hsl(187 100% 50% / ${speedFactor * 0.4}), transparent)`,
-                filter: 'blur(1px)',
-                animation: `speed-line-left ${0.15 + (1 - speedFactor) * 0.2}s linear infinite`,
-                animationDelay: `${i * 0.05}s`,
-              }}
-            />
-          ))}
-          {Array.from({ length: Math.floor(speedFactor * 12) }, (_, i) => (
-            <div
-              key={`streak-r-${i}`}
-              className="absolute h-[2px]"
-              style={{
-                right: `${2 + i * 4}%`,
-                top: `${40 + i * 6}%`,
-                width: `${100 + speedFactor * 200}px`,
-                background: `linear-gradient(270deg, transparent, hsl(345 100% 60% / ${speedFactor * 0.4}), transparent)`,
-                filter: 'blur(1px)',
-                animation: `speed-line-right ${0.15 + (1 - speedFactor) * 0.2}s linear infinite`,
-                animationDelay: `${i * 0.05}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Speed Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-        style={{
-          opacity: speedFactor * 0.8,
-          background: `radial-gradient(circle, transparent ${80 - speedFactor * 40}%, hsl(240 20% 2% / 0.8) 100%)`,
-        }}
-      />
-
-      {/* Nitro Flash Overlay */}
-      {boostActive && (
-        <div className="absolute inset-0 pointer-events-none bg-primary/5 animate-pulse" />
-      )}
+    <div className="absolute inset-0 z-0">
+      <Scene3D speed={speed} phase={phase} question={question} onGatePass={onGatePass} />
     </div>
   )
 }
@@ -746,6 +547,13 @@ export function RaceScreen({ car, onFinish }: RaceScreenProps) {
     return () => clearTimeout(timer)
   }, [phase, playerPos, opponentPos, onFinish, correctAnswers, totalAnswered])
 
+  // Bridge 3D Gate Logic to Game State
+  const handleGatePass = useCallback((isCorrect: boolean) => {
+    if (!currentQuestion) return
+    const idx = isCorrect ? currentQuestion.correctAnswer : (currentQuestion.correctAnswer + 1) % 3
+    handleAnswer(idx)
+  }, [currentQuestion, handleAnswer])
+
   const playerProgress = Math.min((playerPos / RACE_DISTANCE) * 100, 100)
   const opponentProgress = Math.min((opponentPos / RACE_DISTANCE) * 100, 100)
 
@@ -762,38 +570,33 @@ export function RaceScreen({ car, onFinish }: RaceScreenProps) {
 
   return (
     <div className="fixed inset-0 overflow-hidden select-none">
-      {/* 3D Road Scene */}
-      <RoadScene speed={playerSpeed} playerPos={playerPos} boostActive={boostActive} />
+      {/* 3D Game Scene */}
+      <GameScene
+        speed={playerSpeed}
+        phase={phase}
+        question={currentQuestion}
+        onGatePass={handleGatePass}
+      />
 
-      {/* Finish Line */}
+      {/* Finish Line (Overlay for now, could be 3D later) */}
       <FinishLine progress={playerProgress} />
 
-      {/* Opponent Car */}
+      {/* Opponent Car (2D Overlay preserved for now) */}
       {isRacing && (
         <div
           className="absolute left-1/2 transition-all duration-100 ease-linear"
           style={{
             top: `${opponentY}%`,
             transform: `translateX(${normalizedDelta > 0 ? '-70%' : '-30%'})`,
+            zIndex: 10 // Ensure it's above 3D canvas? No, canvas is z-0.
           }}
         >
           <OpponentCarRear scale={opponentScale} />
         </div>
       )}
 
-      {/* Player Car (wraps car for lane movement) */}
-      <div
-        className="absolute bottom-4 left-1/2 z-20 transition-all duration-300 ease-out"
-        style={{
-          transform: `translateX(calc(-50% + ${lane * 140}px))`,
-        }}
-      >
-        <RaceCarRear
-          car={car}
-          boostActive={boostActive}
-          speed={playerSpeed}
-        />
-      </div>
+      {/* 2D Player Car REMOVED - Replaced by 3D PlayerVehicle */}\
+
 
       {/* === HUD OVERLAY === */}
 

@@ -4,20 +4,20 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Mesh } from 'three'
 
-export function Track() {
+export function Track({ speed }: { speed: number }) {
     const gridRef = useRef<Mesh>(null)
 
     useFrame((state, delta) => {
         if (gridRef.current) {
             // Move the grid backwards to simulate forward speed
-            // Speed = 20 units per second
-            const speed = 20
-            gridRef.current.position.z = (gridRef.current.position.z + speed * delta) % 10
+            // Speed factor adjustment (approx 20 units per 100km/h)
+            const moveSpeed = speed * 0.2
+            gridRef.current.position.z = (gridRef.current.position.z + moveSpeed * delta) % 10
         }
     })
 
     return (
-        <group>
+        <group ref={gridRef as any}>
             {/* Main Road */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -50]} receiveShadow>
                 <planeGeometry args={[20, 200]} />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Html, Text } from '@react-three/drei'
 import { Color, BoxGeometry } from 'three'
 
@@ -9,19 +10,36 @@ interface AnswerGateProps {
     text: string
     color: string
     isCorrect: boolean
+    speed: number
+    playerLane: number
+    onPass: (isCorrect: boolean) => void
 }
 
-export function AnswerGate({ position, text, color, isCorrect }: AnswerGateProps) {
+export function AnswerGate({ position, text, color, isCorrect, speed, playerLane, onPass }: AnswerGateProps) {
     const gateRef = useRef<any>(null)
-    const speed = 20 // Match track speed
+    const passedRef = useRef(false)
 
     useFrame((state, delta) => {
         if (gateRef.current) {
-            gateRef.current.position.z += speed * delta
+            // Move gate towards player (+Z)
+            // Speed scaling: 500 game speed ~ 50 units/sec
+            const moveSpeed = speed * 0.1
+            gateRef.current.position.z += moveSpeed * delta
 
-            // Loop for testing purposes (reset when behind camera)
-            if (gateRef.current.position.z > 10) {
-                gateRef.current.position.z = -100
+            const z = gateRef.current.position.z
+
+            // Check collision when passing player (approx Z=0 to Z=5)
+            // Player is typically at 0 or slightly positive Z depending on camera.
+            // Let's assume activation window is small.
+            if (z > 0 && z < 5 && !passedRef.current) {
+                // Determine gate lane from X position
+                // Lanes are -10, 0, 10
+                const gateLane = position[0] < -5 ? -1 : position[0] > 5 ? 1 : 0
+
+                if (gateLane === playerLane) {
+                    onPass(isCorrect)
+                    passedRef.current = true
+                }
             }
         }
     })

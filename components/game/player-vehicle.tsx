@@ -4,11 +4,16 @@ import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Vector3, Group } from 'three'
 
-export function PlayerVehicle() {
+interface PlayerVehicleProps {
+    lane: number
+    onLaneChange: (lane: number) => void
+}
+
+export function PlayerVehicle({ lane, onLaneChange }: PlayerVehicleProps) {
     const vehicleRef = useRef<Group>(null)
 
     // Basic movement state
-    const [lane, setLane] = useState(0) // -1, 0, 1
+    // Lane is now controlled by parent
     const laneWidth = 3.5
 
     useFrame((state, delta) => {
@@ -28,13 +33,13 @@ export function PlayerVehicle() {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowLeft') setLane((prev) => Math.max(prev - 1, -1))
-            if (e.key === 'ArrowRight') setLane((prev) => Math.min(prev + 1, 1))
+            if (e.key === 'ArrowLeft') onLaneChange(Math.max(lane - 1, -1))
+            if (e.key === 'ArrowRight') onLaneChange(Math.min(lane + 1, 1))
         }
 
         window.addEventListener('keydown', handleKeyDown)
         return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [])
+    }, [lane, onLaneChange])
 
     // Keyboard controls would go here (hooking into global input state or event listeners)
 
